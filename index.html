@@ -852,6 +852,35 @@ body {
 /* ─── SVG-иконки для табов ────────────────────────────────── */
 .tab-icon svg { width: 22px; height: 22px; fill: currentColor; }
 
+
+/* ─── Кошелёк: свайп-карты SAMAI/TON + анимации ─── */
+.wallet-cards { display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch; margin:0 -14px 6px; padding:0 14px; }
+.wallet-cards::-webkit-scrollbar { display:none; }
+.wallet-card { flex:0 0 100%; scroll-snap-align:center; background:var(--tile-strong);
+  border:1px solid var(--border-strong); border-radius:24px; padding:22px 18px; text-align:center; }
+.wallet-card.ton { background:rgba(255,255,255,0.12); }
+.wallet-card .wallet-amount { cursor:pointer; transition:opacity .2s; }
+.wallet-dots { display:flex; justify-content:center; gap:6px; margin:2px 0 12px; }
+.wallet-dots .dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.3);
+  transition:background .2s, width .2s; }
+.wallet-dots .dot.active { background:#fff; width:16px; border-radius:3px; }
+.credit-pop { position:fixed; left:50%; top:36%; transform:translate(-50%,0) scale(0.6);
+  background:rgba(255,255,255,0.96); color:var(--accent-text); font-weight:600; font-size:20px;
+  padding:14px 22px; border-radius:18px; z-index:400; box-shadow:0 12px 44px rgba(0,0,0,0.35);
+  opacity:0; pointer-events:none; animation:credit-pop 1.9s ease-out forwards; }
+@keyframes credit-pop {
+  0% { opacity:0; transform:translate(-50%,14px) scale(0.6); }
+  14% { opacity:1; transform:translate(-50%,0) scale(1.08); }
+  28% { transform:translate(-50%,0) scale(1); }
+  80% { opacity:1; transform:translate(-50%,-6px) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-34px) scale(0.92); }
+}
+.balance-flash { animation:bal-flash 1s ease-out; }
+@keyframes bal-flash {
+  0% { color:#b8f5b8; text-shadow:0 0 22px rgba(184,245,184,0.85); }
+  100% { color:#fff; text-shadow:none; }
+}
 </style>
 </head>
 <body>
@@ -1073,15 +1102,26 @@ body {
      ═══════════════════════════════════════════════════════════ -->
 <div class="screen" id="screen-wallet">
 
-  <div class="tile strong wallet-hero">
-    <p class="hero-label">Баланс SAMAI</p>
-    <p class="wallet-amount"><span id="walletAmount">0</span><span class="unit">SAMAI</span></p>
-    <p class="wallet-sub">≈ <span id="walletAmountTon">0</span> TON</p>
-    <div class="wallet-actions">
-      <button class="cta" style="margin-top: 0;" onclick="openDepositSheet()">Пополнить</button>
-      <button class="cta ghost" style="margin-top: 0;" onclick="openWithdrawSheet()">Вывести</button>
+  <div class="wallet-cards" id="walletCards">
+    <div class="wallet-card samai">
+      <p class="hero-label">Баланс SAMAI</p>
+      <p class="wallet-amount" onclick="toggleHideBalance()"><span id="walletAmount">0</span><span class="unit">SAMAI</span></p>
+      <p class="wallet-sub">≈ <span id="walletAmountTon">0</span> TON</p>
+      <div class="wallet-actions">
+        <button class="cta" style="margin-top: 0;" onclick="openDepositSheet()">Пополнить</button>
+        <button class="cta ghost" style="margin-top: 0;" onclick="openWithdrawSheet()">Вывести</button>
+      </div>
+    </div>
+    <div class="wallet-card ton">
+      <p class="hero-label">Эквивалент в TON</p>
+      <p class="wallet-amount" onclick="toggleHideBalance()"><span id="walletTonAmount">0</span><span class="unit">TON</span></p>
+      <p class="wallet-sub"><span id="walletTonSamai">0</span> SAMAI · 1 TON = 100 SAMAI</p>
+      <div class="wallet-actions">
+        <button class="cta" style="margin-top: 0;" onclick="openDepositSheet()">Пополнить</button>
+      </div>
     </div>
   </div>
+  <div class="wallet-dots"><span class="dot active"></span><span class="dot"></span></div>
 
   <div class="stat-grid">
     <div class="tile">
@@ -1268,7 +1308,7 @@ body {
       <p style="margin: 0 0 4px; font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500;">Кошелёк для оплаты</p>
       <p style="margin: 0; font-size: 11px; word-break: break-all; font-family: monospace;" id="depositWalletAddr">—</p>
     </div>
-    <button class="cta" onclick="submitDeposit()">Получить реквизиты</button>
+    <button class="cta" onclick="submitDeposit()">Оплатить через Tonkeeper</button>
     <button class="cta ghost" onclick="closeSheet('depositOverlay')">Отмена</button>
   </div>
 </div>
@@ -1320,84 +1360,73 @@ const initData = tg?.initData || '';
 // API SLOTS — заполнишь URLами когда сделаешь бэкенд
 // ═══════════════════════════════════════════════════════════════
 const API = {
-  base: '', // например 'https://samai.duckdns.org'
+  // ▼▼▼ ВПИШИ HTTPS-АДРЕС БЭКЕНДА. GitHub Pages работает по https,
+  //     поэтому бэкенд ТОЖЕ должен быть https (иначе браузер заблокирует запросы). ▼▼▼
+  base: 'https://REPLACE-WITH-YOUR-BACKEND-DOMAIN',
 
-  async getBalance() {
-    // GET /api/balance?uid={id}
-    // return: { samai: 1240, ton_equiv: 12.4 }
-    return { samai: 0, ton_equiv: 0 };
+  _headers() {
+    return { 'Content-Type': 'application/json', 'X-Init-Data': initData || '' };
+  },
+  async _get(path) {
+    try {
+      const r = await fetch(this.base + path, { headers: this._headers() });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } catch (e) { console.error('[API GET]', path, e); return null; }
+  },
+  async _post(path, body) {
+    try {
+      const r = await fetch(this.base + path, {
+        method: 'POST', headers: this._headers(), body: JSON.stringify(body || {}),
+      });
+      return await r.json();
+    } catch (e) { console.error('[API POST]', path, e); return { ok: false, error: 'network' }; }
   },
 
+  async getBalance() {
+    return (await this._get('/api/balance')) || { samai: 0, ton_equiv: 0 };
+  },
   async getUserProfile() {
-    // GET /api/profile?uid={id}
-    // return: { role: 'ceo'|'founder'|'member', community_id, subs_count, referral_code }
-    return {
-      role: 'member',
-      community_id: null,
-      subs_count: 0,
+    return (await this._get('/api/profile')) || {
+      role: 'member', community_id: null, subs_count: 0,
       referral_code: user?.id || 'guest',
     };
   },
-
   async getTodayStats() {
-    // GET /api/stats/today
-    // return: { lots_issued, lots_claimed, founders_today, communities, ceos_active, delta_vs_yesterday }
-    return {
-      lots_issued: 0,
-      lots_claimed: 0,
-      founders_today: 0,
-      communities: 0,
-      ceos_active: 0,
-      delta_vs_yesterday: 0,
+    return (await this._get('/api/stats/today')) || {
+      lots_issued: 0, lots_claimed: 0, founders_today: 0,
+      communities: 0, ceos_active: 0, delta_vs_yesterday: 0,
     };
   },
-
   async getTopCommunities(limit = 3) {
-    // GET /api/communities/top?limit=3
-    // return: [{ id, name, ceo_username, founders_count, price_samai, growth_today, is_ceo }]
-    return [];
+    return (await this._get('/api/communities/top?limit=' + limit)) || [];
   },
-
   async getAllCommunities(category = 'all') {
-    // GET /api/communities?category=all
-    return [];
+    return (await this._get('/api/communities?category=' + encodeURIComponent(category))) || [];
   },
-
   async getLots(communityId = null, limit = 20) {
-    // GET /api/lots?community_id=...&limit=20
-    return {
-      list: [],
-      stats: { issued: 0, claimed: 0, avg_price: 0, top_price: 0, top_name: null, active_now: 0 },
+    const q = '/api/lots?limit=' + limit + (communityId ? '&community_id=' + communityId : '');
+    return (await this._get(q)) || {
+      list: [], stats: { issued: 0, claimed: 0, avg_price: 0, top_price: 0, top_name: null, active_now: 0 },
     };
   },
-
   async getTransactions(limit = 20) {
-    // GET /api/wallet/tx?limit=20
-    return [];
+    return (await this._get('/api/wallet/tx?limit=' + limit)) || [];
   },
-
   async getMyCEO() {
-    // GET /api/ceo/me
-    // return: { community_id, name, founders_count, total_earned, founders_list: [] }
-    return null;
+    return await this._get('/api/ceo/me');
   },
-
   async requestDeposit(amountTon) {
-    // POST /api/wallet/deposit  { amount_ton }
-    // return: { wallet_address, memo, expected_samai }
-    return null;
+    return await this._post('/api/wallet/deposit', { amount_ton: amountTon });
   },
-
   async requestWithdraw(amountSamai, address) {
-    // POST /api/wallet/withdraw  { amount_samai, address }
-    // return: { ok, tx_id, final_ton }
-    return { ok: false, error: 'API not connected' };
+    return await this._post('/api/wallet/withdraw', { amount_samai: amountSamai, address });
   },
-
   async createCommunity(name, descr, priceSamai) {
-    // POST /api/ceo/create  { name, descr, price_samai }
-    // return: { ok, community_id }
-    return { ok: false, error: 'API not connected' };
+    return await this._post('/api/ceo/create', { name, descr, price_samai: priceSamai });
+  },
+  async checkDeposit(paymentId) {
+    return await this._post('/api/wallet/deposit/check', { payment_id: paymentId });
   },
 };
 
@@ -1409,6 +1438,7 @@ const state = {
   profile: null,
   activeTab: 'home',
   activeCatalogFilter: 'all',
+  balanceHidden: false,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1602,8 +1632,11 @@ async function refreshWallet() {
   state.balance = balance;
   updateBalanceEverywhere();
 
-  document.getElementById('walletAmount').textContent = fmt(balance.samai);
-  document.getElementById('walletAmountTon').textContent = balance.ton_equiv.toFixed(2);
+  renderBalance();
+  if (!state.balanceHidden) {
+    animateValue(document.getElementById('walletAmount'), balance.samai || 0);
+    animateValue(document.getElementById('walletTonSamai'), balance.samai || 0);
+  }
 
   const container = document.getElementById('txList');
   if (!txs || txs.length === 0) {
@@ -1701,6 +1734,7 @@ async function loadCEOData() {
 // ═══════════════════════════════════════════════════════════════
 // ACTIONS
 // ═══════════════════════════════════════════════════════════════
+let _depTimer = null;
 async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   if (!amount || amount < 0.1) {
@@ -1710,12 +1744,40 @@ async function submitDeposit() {
   }
   haptic('medium');
   const result = await API.requestDeposit(amount);
-  if (!result) {
-    tg?.showAlert?.('Бэкенд не подключён. Заглушка.');
+  if (!result || !result.payment_id) {
+    tg?.showAlert?.('Бэкенд недоступен. Попробуй позже.');
     return;
   }
+  // показать адрес (fallback для ручной оплаты) и открыть контракт в Tonkeeper
   document.getElementById('depositWalletBlock').style.display = 'block';
   document.getElementById('depositWalletAddr').textContent = result.wallet_address || '—';
+  const link = result.tonkeeper_link || result.ton_link;
+  if (link) {
+    try { tg?.openLink ? tg.openLink(link) : window.open(link, '_blank'); } catch (e) {}
+  }
+  startDepositPolling(result.payment_id, result.expected_samai || amount * 100);
+}
+
+function startDepositPolling(pid, expectedSamai) {
+  if (_depTimer) clearInterval(_depTimer);
+  let tries = 0;
+  _depTimer = setInterval(async () => {
+    tries++;
+    const r = await API.checkDeposit(pid);
+    if (r && r.paid) {
+      clearInterval(_depTimer); _depTimer = null;
+      haptic('heavy');
+      closeSheet('depositOverlay');
+      if (typeof r.balance === 'number') {
+        state.balance.samai = r.balance;
+        state.balance.ton_equiv = r.balance / 100;
+      }
+      flashCredit(r.samai || expectedSamai, 'SAMAI');
+      renderBalance();
+      refreshWallet();
+    }
+    if (tries > 60) { clearInterval(_depTimer); _depTimer = null; }
+  }, 5000);
 }
 
 async function submitWithdraw() {
@@ -1823,12 +1885,57 @@ document.addEventListener('click', (e) => {
 // ═══════════════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════════════
-function updateBalanceEverywhere() {
-  const s = fmt(state.balance.samai);
-  const t = (state.balance.ton_equiv || 0).toFixed(2);
-  document.getElementById('topbarBalance').textContent = `${s} SAMAI`;
-  document.getElementById('heroBalance').textContent = s;
-  document.getElementById('heroBalanceTon').textContent = t;
+function _setTxt(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+
+function renderBalance() {
+  const hidden = state.balanceHidden;
+  const s = state.balance.samai || 0;
+  const t = state.balance.ton_equiv || 0;
+  const MASK = '••••';
+  const sStr = hidden ? MASK : fmt(s);
+  const tStr = hidden ? MASK : t.toFixed(2);
+  _setTxt('topbarBalance', hidden ? MASK + ' SAMAI' : `${fmt(s)} SAMAI`);
+  _setTxt('heroBalance', sStr);
+  _setTxt('heroBalanceTon', tStr);
+  _setTxt('walletAmount', sStr);
+  _setTxt('walletAmountTon', tStr);
+  _setTxt('walletTonAmount', tStr);
+  _setTxt('walletTonSamai', hidden ? MASK : fmt(s));
+}
+
+function updateBalanceEverywhere() { renderBalance(); }
+
+function toggleHideBalance() {
+  state.balanceHidden = !state.balanceHidden;
+  haptic('light');
+  renderBalance();
+}
+
+function animateValue(el, to, dur = 900) {
+  if (!el) return;
+  const from = parseFloat((el.textContent || '0').replace(/[^\d.-]/g, '')) || 0;
+  to = Number(to) || 0;
+  if (from === to) { el.textContent = fmt(to); return; }
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(Math.round(from + (to - from) * eased));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function flashCredit(amount, unit) {
+  const pop = document.createElement('div');
+  pop.className = 'credit-pop';
+  pop.textContent = `+${fmt(amount)} ${unit}`;
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1950);
+  ['walletAmount', 'heroBalance'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) { e.classList.add('balance-flash'); setTimeout(() => e.classList.remove('balance-flash'), 1000); }
+  });
 }
 
 function escapeHtml(s) {
@@ -1863,6 +1970,15 @@ document.getElementById('refreshLots')?.addEventListener('click', () => {
   haptic('light');
   refreshLots();
 });
+
+// Точки-индикаторы свайпа кошелька
+const _wc = document.getElementById('walletCards');
+if (_wc) {
+  _wc.addEventListener('scroll', () => {
+    const i = Math.round(_wc.scrollLeft / Math.max(1, _wc.clientWidth));
+    document.querySelectorAll('.wallet-dots .dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
+  });
+}
 
 // Первичная загрузка
 refreshHome();
