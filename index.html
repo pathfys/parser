@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>SAMAI</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg-top: #4a8fdc;
+  --bg-bottom: #5b9de6;
+  --tile: rgba(255,255,255,0.18);
+  --tile-hover: rgba(255,255,255,0.22);
+  --tile-strong: rgba(255,255,255,0.22);
+  --border: rgba(255,255,255,0.25);
+  --border-strong: rgba(255,255,255,0.35);
+  --text: #ffffff;
+  --text-muted: rgba(255,255,255,0.75);
+  --text-faint: rgba(255,255,255,0.6);
+  --accent: #ffffff;
+  --accent-text: #4a8fdc;
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+/* ─── Верхняя шапка ─────────────────────────────────────────── */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding: calc(var(--tg-safe-top) + 12px) 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  background: linear-gradient(180deg, var(--bg-top) 60%, rgba(74,143,220,0) 100%);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-mark {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 500;
+  font-size: 15px;
+}
+.logo-text {
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+.balance-pill {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.balance-icon {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--accent-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* ─── Скролл-область ──────────────────────────────────────── */
+.scroll {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: calc(var(--tg-safe-top) + 68px);
+  padding-bottom: calc(var(--tg-safe-bottom) + 90px);
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+.content {
+  padding: 0 14px;
+}
+
+/* ─── Экраны ──────────────────────────────────────────────── */
+.screen { display: none; }
+.screen.active { display: block; animation: fade 0.25s ease-out; }
+@keyframes fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Заголовки ───────────────────────────────────────────── */
+.page-title {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 4px 4px 4px;
+  letter-spacing: -0.5px;
+}
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 4px 14px;
+  font-weight: 500;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 14px 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-title .action {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ─── Плитки ──────────────────────────────────────────────── */
+.tile {
+  background: var(--tile);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.tile.strong {
+  background: var(--tile-strong);
+  border-color: var(--border-strong);
+}
+
+.hero-tile {
+  padding: 20px 16px;
+}
+.hero-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 0 0 4px;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.hero-value {
+  font-size: 32px;
+  font-weight: 500;
+  margin: 0 0 3px;
+  letter-spacing: -1px;
+}
+.hero-value .unit {
+  font-size: 16px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+.hero-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 14px;
+  font-weight: 500;
+}
+.hero-actions {
+  display: flex;
+  gap: 8px;
+}
+.hero-btn {
+  flex: 1;
+  border-radius: 12px;
+  padding: 11px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  transition: transform 0.15s;
+}
+.hero-btn.filled {
+  background: rgba(255,255,255,0.9);
+  color: var(--accent-text);
+  border-color: rgba(255,255,255,0.9);
+}
+.hero-btn:active { transform: scale(0.97); }
+
+/* ─── Сетка статистики ───────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.stat-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+.stat-value {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+.stat-delta {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* ─── Пустые состояния ────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon {
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, border-color 0.2s;
+  will-change: transform;
+}
+.empty-state-icon:hover {
+  background: rgba(255,255,255,0.22);
+  border-color: var(--border-strong);
+  transform: scale(1.08);
+}
+.empty-state-icon:active {
+  transform: scale(0.92);
+}
+
+/* ─── Живые эмодзи в пустых состояниях ───────────────────── */
+.emoji-live {
+  display: inline-block;
+  transform-origin: center;
+  animation-duration: 3s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+.emoji-live.search { animation-name: emoji-sway; }
+.emoji-live.mailbox { animation-name: emoji-bounce; animation-duration: 2.4s; }
+.emoji-live.money { animation-name: emoji-wobble; animation-duration: 2.8s; }
+.emoji-live.sparkle { animation-name: emoji-spin; animation-duration: 4s; }
+.emoji-live.wave { animation-name: emoji-wave; }
+.emoji-live.gem { animation-name: emoji-shine; animation-duration: 2.5s; }
+.emoji-live.crown { animation-name: emoji-float; }
+
+.empty-state-icon:hover .emoji-live { animation-play-state: paused; transform: scale(1.15); }
+
+@keyframes emoji-sway {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes emoji-bounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+  60% { transform: translateY(-3px); }
+}
+@keyframes emoji-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-6deg) scale(1.05); }
+  75% { transform: rotate(6deg) scale(1.05); }
+}
+@keyframes emoji-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes emoji-wave {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(20deg); }
+  30% { transform: rotate(-15deg); }
+  45% { transform: rotate(20deg); }
+  60% { transform: rotate(-10deg); }
+  75% { transform: rotate(0deg); }
+}
+@keyframes emoji-shine {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+  50% { transform: scale(1.12) rotate(-4deg); filter: brightness(1.3); }
+}
+@keyframes emoji-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+/* Мелкие эмодзи в тексте — тоже кликабельны */
+.emoji-tap {
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.emoji-tap:hover { transform: scale(1.3) rotate(-8deg); }
+.emoji-tap:active { transform: scale(0.85); }
+.empty-state-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+.empty-state-text {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+
+/* ─── Список коммьюнити ──────────────────────────────────── */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+}
+.list-item:last-child { border-bottom: none; }
+.avatar {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.25);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 14px;
+  flex-shrink: 0;
+  color: #fff;
+}
+.list-info { flex: 1; min-width: 0; }
+.list-name {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.list-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 0;
+  font-weight: 500;
+}
+.list-price {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+.list-price small {
+  color: var(--text-muted);
+  font-size: 10px;
+  display: block;
+  margin-top: 1px;
+  font-weight: 500;
+}
+
+.badge {
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.badge-ceo {
+  background: #fff;
+  color: var(--accent-text);
+}
+.badge-founder {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+/* ─── Фильтры ─────────────────────────────────────────────── */
+.filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.filters::-webkit-scrollbar { display: none; }
+.filter-chip {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 11px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.filter-chip.active {
+  background: #fff;
+  color: var(--accent-text);
+  border-color: #fff;
+}
+
+/* ─── Карточка лота ──────────────────────────────────────── */
+.lot-card {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.lot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.lot-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+}
+.lot-title small {
+  color: rgba(255,255,255,0.6);
+  font-weight: 400;
+  margin-left: 3px;
+}
+.lot-price {
+  font-size: 13px;
+  font-weight: 500;
+}
+.lot-price small {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.lot-meta {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.tag {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.tag.accent {
+  background: #fff;
+  color: var(--accent-text);
+}
+
+/* ─── Прогресс ────────────────────────────────────────────── */
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.progress-row span:first-child { color: var(--text-muted); }
+.progress-row span:last-child { font-weight: 500; }
+.progress-bar {
+  height: 5px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+
+/* ─── Карточки ролей ─────────────────────────────────────── */
+.roles-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 4px 6px;
+  margin: 0 -14px 10px;
+  padding-left: 14px;
+  padding-right: 14px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.roles-scroll::-webkit-scrollbar { display: none; }
+.role-card {
+  flex: 0 0 82%;
+  scroll-snap-align: start;
+  background: var(--tile);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+}
+.role-card.ceo { background: rgba(255,255,255,0.24); border-color: rgba(255,255,255,0.4); }
+.role-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.role-emoji {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.role-emoji:active { transform: scale(0.88) rotate(-8deg); }
+.role-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+.role-subtitle {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 1px 0 0;
+  font-weight: 500;
+}
+.role-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.role-benefits li {
+  font-size: 12px;
+  padding: 4px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+.role-benefits li::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.role-price {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.role-price b { color: #fff; }
+
+/* ─── Профиль ─────────────────────────────────────────────── */
+.profile-hero {
+  text-align: center;
+  padding: 16px 0 10px;
+}
+.profile-avatar {
+  width: 76px; height: 76px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.25);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 500;
+  margin: 0 auto 10px;
+  color: #fff;
+}
+.profile-name {
+  font-size: 17px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.profile-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.founder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.founder-num {
+  min-width: 26px;
+  font-weight: 500;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.founder-avatar {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.25);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+}
+.founder-name {
+  font-size: 12px;
+  flex: 1;
+  font-weight: 500;
+}
+.founder-since {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ─── CTA-кнопки ──────────────────────────────────────────── */
+.cta {
+  background: #fff;
+  color: var(--accent-text);
+  border: none;
+  padding: 13px;
+  border-radius: 14px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 12px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  font-family: inherit;
+}
+.cta:active { transform: scale(0.98); }
+.cta.ghost {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+/* ─── Кошелёк ─────────────────────────────────────────────── */
+.wallet-hero {
+  text-align: center;
+  padding: 20px 16px;
+}
+.wallet-amount {
+  font-size: 42px;
+  font-weight: 500;
+  margin: 8px 0 4px;
+  letter-spacing: -1.5px;
+}
+.wallet-amount .unit {
+  font-size: 18px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+.wallet-sub {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.wallet-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.tx-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.tx-item:last-child { border-bottom: none; }
+.tx-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.tx-info { flex: 1; min-width: 0; }
+.tx-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 2px;
+}
+.tx-date {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 0;
+  font-weight: 500;
+}
+.tx-amount {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tx-amount.plus { color: #b8f5b8; }
+.tx-amount.minus { color: #ffcaca; }
+
+/* ─── Нижняя навигация ───────────────────────────────────── */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(74,143,220,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 4px calc(var(--tg-safe-bottom) + 14px);
+  display: flex;
+  justify-content: space-around;
+  z-index: 100;
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  color: rgba(255,255,255,0.6);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.tab.active { color: #fff; }
+.tab-icon {
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab.active::after {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  margin-top: 2px;
+}
+
+/* ─── Modals / шторки ─────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 70, 130, 0.5);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.overlay.active { display: flex; }
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(180deg, #4a8fdc 0%, #5b9de6 100%);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px calc(var(--tg-safe-bottom) + 20px);
+  border-top: 1px solid rgba(255,255,255,0.2);
+  animation: slide-up 0.3s ease-out;
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sheet-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.sheet-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  letter-spacing: -0.3px;
+}
+.sheet-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 20px;
+  font-weight: 500;
+}
+.sheet-input {
+  width: 100%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  margin-bottom: 10px;
+  outline: none;
+}
+.sheet-input::placeholder { color: var(--text-faint); }
+
+/* ─── SVG-иконки для табов ────────────────────────────────── */
+.tab-icon svg { width: 22px; height: 22px; fill: currentColor; }
+
+</style>
+</head>
+<body>
+
+<!-- ─── Верхняя шапка ───────────────────────────────────── -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">S</div>
+    <div class="logo-text">SAM</div>
+  </div>
+  <div class="balance-pill" onclick="switchTab('wallet')">
+    <span class="balance-icon">S</span>
+    <span id="topbarBalance">0 SAMAI</span>
+  </div>
+</div>
+
+<!-- ─── Скролл-контейнер ────────────────────────────────── -->
+<div class="scroll" id="scrollArea">
+<div class="content">
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЭКРАН 1 — ГЛАВНАЯ
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-home">
+
+  <div class="tile strong hero-tile">
+    <p class="hero-label">Твой баланс</p>
+    <p class="hero-value"><span id="heroBalance">0</span><span class="unit">SAMAI</span></p>
+    <p class="hero-sub">≈ <span id="heroBalanceTon">0</span> TON</p>
+    <div class="hero-actions">
+      <div class="hero-btn filled" onclick="switchTab('wallet')">Пополнить</div>
+      <div class="hero-btn" onclick="switchTab('wallet')">Вывести</div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="tile">
+      <p class="stat-label">Лотов сегодня</p>
+      <p class="stat-value" id="statLotsToday">0</p>
+      <p class="stat-delta" id="statLotsDelta">за 24 часа</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Занято</p>
+      <p class="stat-value" id="statLotsTaken">0</p>
+      <p class="stat-delta" id="statTakenPercent">— % успех</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Founder'ов</p>
+      <p class="stat-value" id="statFoundersToday">0</p>
+      <p class="stat-delta" id="statFoundersDelta">за сегодня</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Коммьюнити</p>
+      <p class="stat-value" id="statCommunities">0</p>
+      <p class="stat-delta" id="statCEOs">CEO активны</p>
+    </div>
+  </div>
+
+  <div class="section-title">
+    <span>Как это работает</span>
+  </div>
+
+  <div class="roles-scroll">
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-emoji emoji-tap" onclick="tapEmoji(this, '👤')">👤</div>
+        <div>
+          <p class="role-title">Member</p>
+          <p class="role-subtitle">Базовый доступ</p>
+        </div>
+      </div>
+      <ul class="role-benefits">
+        <li>Просмотр каталога коммьюнити</li>
+        <li>Статистика по лотам в общей ленте</li>
+        <li>Реф. ссылка · +50 SAMAI за друга</li>
+      </ul>
+      <div class="role-price">Бесплатно · <b>стартовая роль</b></div>
+    </div>
+
+    <div class="role-card">
+      <div class="role-header">
+        <div class="role-emoji emoji-tap" onclick="tapEmoji(this, '💎')">💎</div>
+        <div>
+          <p class="role-title">Founder</p>
+          <p class="role-subtitle">Подписчик коммьюнити</p>
+        </div>
+      </div>
+      <ul class="role-benefits">
+        <li>Живая лента лотов с уровнем и фильтрами</li>
+        <li>Кнопка «Занять лот» — забираешь первым</li>
+        <li>Статистика продавца в каждой карточке</li>
+        <li>Персональный номер Founder #N навсегда</li>
+        <li>Приоритет в поддержке</li>
+      </ul>
+      <div class="role-price">Стоимость выбирает <b>CEO</b> · обычно 100-300 SAMAI</div>
+    </div>
+
+    <div class="role-card ceo">
+      <div class="role-header">
+        <div class="role-emoji emoji-tap" onclick="tapEmoji(this, '👑')">👑</div>
+        <div>
+          <p class="role-title">CEO <span class="badge badge-ceo">CEO</span></p>
+          <p class="role-subtitle">Владелец коммьюнити</p>
+        </div>
+      </div>
+      <ul class="role-benefits">
+        <li>Своё коммьюнити с брендом и описанием</li>
+        <li>85% с каждой подписки Founder'а</li>
+        <li>Панель управления: статистика, посты, аналитика</li>
+        <li>Вывод SAMAI → TON в один клик</li>
+        <li>Топовое место в каталоге при активности</li>
+        <li>Верифицированный бейдж CEO навсегда</li>
+      </ul>
+      <div class="role-price">Создание — <b>500 SAMAI</b> одноразово</div>
+    </div>
+  </div>
+
+  <div class="section-title">
+    <span>Топ коммьюнити</span>
+    <span class="action" onclick="switchTab('catalog')">все →</span>
+  </div>
+
+  <div class="tile" style="padding: 8px 16px;" id="topCommunitiesTile">
+    <div class="empty-state">
+      <div class="empty-state-icon" onclick="tapIcon(this)"><span class="emoji-live sparkle">✨</span></div>
+      <p class="empty-state-title">Пока нет коммьюнити</p>
+      <p class="empty-state-text">Стань первым CEO — создай своё коммьюнити и приглашай Founder'ов.</p>
+      <button class="cta" onclick="openCreateCommunity()">Создать коммьюнити</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЭКРАН 2 — КАТАЛОГ
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-catalog">
+
+  <div class="page-title">Каталог</div>
+  <div class="page-subtitle"><span id="catalogCount">0</span> коммьюнити · 4 категории</div>
+
+  <div class="filters">
+    <div class="filter-chip active" data-cat="all">Все</div>
+    <div class="filter-chip" data-cat="parsers">NFT-парсеры</div>
+    <div class="filter-chip" data-cat="signals">Сигналы</div>
+    <div class="filter-chip" data-cat="exchange">Обмен</div>
+  </div>
+
+  <div id="communityList">
+    <div class="tile">
+      <div class="empty-state">
+        <div class="empty-state-icon" onclick="tapIcon(this)"><span class="emoji-live search">🔍</span></div>
+        <p class="empty-state-title">Каталог пуст</p>
+        <p class="empty-state-text">Как только появятся первые коммьюнити — они окажутся здесь.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЭКРАН 3 — ЛОТЫ
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-lots">
+
+  <div class="page-title">Лоты за сегодня</div>
+  <div class="page-subtitle" id="lotsSubtitle">Подпишись на коммьюнити чтобы видеть лоты</div>
+
+  <div class="stat-grid">
+    <div class="tile">
+      <p class="stat-label">Выпущено</p>
+      <p class="stat-value" id="lotsIssued">0</p>
+      <p class="stat-delta">за сегодня</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Занято</p>
+      <p class="stat-value" id="lotsClaimed">0</p>
+      <p class="stat-delta" id="lotsClaimedPercent">— %</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Средняя цена</p>
+      <p class="stat-value" id="lotsAvgPrice">0<small>⭐</small></p>
+      <p class="stat-delta">за сегодня</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Топ-цена</p>
+      <p class="stat-value" id="lotsTopPrice">—</p>
+      <p class="stat-delta" id="lotsTopName">—</p>
+    </div>
+  </div>
+
+  <div class="tile" id="lotsProgressTile" style="display: none;">
+    <div class="progress-row"><span>Активны сейчас</span><span id="progressActive">0 / 0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressActiveBar" style="width: 0%;"></div></div>
+    <div class="progress-row"><span>Закрыто</span><span id="progressClosed">0 / 0</span></div>
+    <div class="progress-bar" style="margin-bottom: 0;"><div class="progress-fill" id="progressClosedBar" style="width: 0%;"></div></div>
+  </div>
+
+  <div class="section-title">
+    <span>Свежие лоты</span>
+    <span class="action" id="refreshLots">обновить</span>
+  </div>
+
+  <div id="lotsList">
+    <div class="tile">
+      <div class="empty-state">
+        <div class="empty-state-icon" onclick="tapIcon(this)"><span class="emoji-live mailbox">📭</span></div>
+        <p class="empty-state-title">Пока нет лотов</p>
+        <p class="empty-state-text">Подпишись на коммьюнити — здесь появится живая лента лотов.</p>
+        <button class="cta" onclick="switchTab('catalog')">В каталог</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЭКРАН 4 — КОШЕЛЁК
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-wallet">
+
+  <div class="tile strong wallet-hero">
+    <p class="hero-label">Баланс SAMAI</p>
+    <p class="wallet-amount"><span id="walletAmount">0</span><span class="unit">SAMAI</span></p>
+    <p class="wallet-sub">≈ <span id="walletAmountTon">0</span> TON</p>
+    <div class="wallet-actions">
+      <button class="cta" style="margin-top: 0;" onclick="openDepositSheet()">Пополнить</button>
+      <button class="cta ghost" style="margin-top: 0;" onclick="openWithdrawSheet()">Вывести</button>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="tile">
+      <p class="stat-label">Курс</p>
+      <p class="stat-value">1<small style="font-size:12px;opacity:0.7;"> TON</small></p>
+      <p class="stat-delta">= 100 SAMAI</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Комиссия вывода</p>
+      <p class="stat-value">15<small style="font-size:12px;opacity:0.7;">%</small></p>
+      <p class="stat-delta">SAMAI → TON</p>
+    </div>
+  </div>
+
+  <div class="section-title">
+    <span>История транзакций</span>
+  </div>
+
+  <div class="tile" style="padding: 8px 16px;" id="txList">
+    <div class="empty-state">
+      <div class="empty-state-icon" onclick="tapIcon(this)"><span class="emoji-live money">💸</span></div>
+      <p class="empty-state-title">История пуста</p>
+      <p class="empty-state-text">Пополни баланс — здесь появятся все транзакции.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЭКРАН 5 — ПРОФИЛЬ
+     ═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-profile">
+
+  <div class="profile-hero">
+    <div class="profile-avatar" id="profileAvatar">?</div>
+    <div class="profile-name">
+      <span id="profileName">—</span>
+      <span class="badge" id="profileBadge" style="display: none;"></span>
+    </div>
+    <div class="profile-meta">ID · <span id="profileId">—</span></div>
+  </div>
+
+  <div class="stat-grid" style="margin-top: 8px;">
+    <div class="tile">
+      <p class="stat-label">Роль</p>
+      <p class="stat-value" id="profileRole" style="font-size: 16px; padding-top: 2px;">Member</p>
+      <p class="stat-delta" id="profileRoleSub">Базовый доступ</p>
+    </div>
+    <div class="tile">
+      <p class="stat-label">Подписок</p>
+      <p class="stat-value" id="profileSubsCount">0</p>
+      <p class="stat-delta">активных</p>
+    </div>
+  </div>
+
+  <div id="profileCommunityBlock" style="display: none;">
+    <div class="section-title">
+      <span>Моё коммьюнити</span>
+      <span class="action" id="ceoManageAction">управлять</span>
+    </div>
+    <div class="stat-grid">
+      <div class="tile">
+        <p class="stat-label">Founder'ов</p>
+        <p class="stat-value" id="myFoundersCount">0</p>
+        <p class="stat-delta">за всё время</p>
+      </div>
+      <div class="tile">
+        <p class="stat-label">Заработано</p>
+        <p class="stat-value" id="myEarnings">0<small style="font-size:12px;opacity:0.7;"> T</small></p>
+        <p class="stat-delta">за всё время</p>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Founder'ы</span>
+      <span class="action" id="myFoundersTotal">0</span>
+    </div>
+
+    <div class="tile" style="padding: 8px 16px;" id="myFoundersList">
+      <div class="empty-state" style="padding: 20px 10px;">
+        <div class="empty-state-icon" onclick="tapIcon(this)"><span class="emoji-live gem">💎</span></div>
+        <p class="empty-state-title">Пока пусто</p>
+        <p class="empty-state-text">Как только к тебе присоединится первый Founder — он появится здесь.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="profileNoCEOBlock">
+    <div class="section-title">
+      <span>Апгрейд до Founder</span>
+    </div>
+    <div class="tile">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <div class="role-emoji emoji-tap" onclick="tapEmoji(this, '💎')" style="width:36px;height:36px;font-size:18px;">💎</div>
+        <div>
+          <p style="margin:0; font-size:14px; font-weight:500;">Что даёт статус Founder</p>
+          <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted); font-weight:500;">Оформляется в коммьюнити CEO</p>
+        </div>
+      </div>
+      <ul class="role-benefits" style="margin-bottom:12px;">
+        <li>Живая лента лотов с уровнем и фильтрами</li>
+        <li>Кнопка «Занять лот» — забираешь первым</li>
+        <li>Статистика продавца в каждой карточке</li>
+        <li>Персональный номер Founder #N навсегда</li>
+        <li>Приоритет в поддержке</li>
+      </ul>
+      <button class="cta ghost" onclick="switchTab('catalog')">Выбрать коммьюнити</button>
+    </div>
+
+    <div class="section-title">
+      <span>Или стать CEO</span>
+    </div>
+    <div class="tile">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <div class="role-emoji emoji-tap" onclick="tapEmoji(this, '👑')" style="width:36px;height:36px;font-size:18px;">👑</div>
+        <div>
+          <p style="margin:0; font-size:14px; font-weight:500;">Что даёт статус CEO <span class="badge badge-ceo">CEO</span></p>
+          <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted); font-weight:500;">Одноразовый платёж — 500 SAMAI</p>
+        </div>
+      </div>
+      <ul class="role-benefits" style="margin-bottom:12px;">
+        <li>Своё коммьюнити с брендом и описанием</li>
+        <li><b style="color:#fff;">85%</b> с каждой подписки Founder'а</li>
+        <li>Панель управления: статистика, посты, аналитика</li>
+        <li>Вывод SAMAI → TON в один клик</li>
+        <li>Топовое место в каталоге при активности</li>
+        <li>Верифицированный бейдж CEO навсегда</li>
+      </ul>
+      <p style="margin: 0 0 12px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+        Пример: <b style="color:#fff;">100 Founder'ов × 200 SAMAI</b> = 20,000 SAMAI (~200 TON). Твоя доля — 17,000 SAMAI.
+      </p>
+      <button class="cta" onclick="openCreateCommunity()">Создать коммьюнити · 500 SAMAI</button>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top: 20px;">
+    <span>Пригласи друга</span>
+  </div>
+  <div class="tile">
+    <p style="margin: 0 0 10px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">Твоя реф. ссылка. За каждого приглашённого — <b style="color:#fff;">+50 SAMAI</b>.</p>
+    <div style="display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,0.15); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px;">
+      <span id="referralLink" style="flex:1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">t.me/samai_bot?start=—</span>
+    </div>
+    <button class="cta ghost" onclick="copyReferralLink()">Скопировать ссылку</button>
+  </div>
+
+</div>
+
+</div>
+</div>
+
+<!-- ─── Нижняя навигация ───────────────────────────────── -->
+<div class="tab-bar">
+  <div class="tab active" data-tab="home" onclick="switchTab('home')">
+    <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg></div>
+    <span>Главная</span>
+  </div>
+  <div class="tab" data-tab="catalog" onclick="switchTab('catalog')">
+    <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-12.5l-6 2.5-2.5 6 6-2.5 2.5-6z"/></svg></div>
+    <span>Каталог</span>
+  </div>
+  <div class="tab" data-tab="lots" onclick="switchTab('lots')">
+    <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 2C7 8 4 11 4 15a8 8 0 0016 0c0-4-3-7-8-13zm0 18a5 5 0 01-5-5c0-2.5 2-4.5 5-8.5 3 4 5 6 5 8.5a5 5 0 01-5 5z"/></svg></div>
+    <span>Лоты</span>
+  </div>
+  <div class="tab" data-tab="wallet" onclick="switchTab('wallet')">
+    <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.6-.35 1-1 1-1.72V9c0-.72-.4-1.38-1-1.72zM19 9v6h-7V9h7zM5 19V5h14v2h-7c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h7v2H5z"/><circle cx="16" cy="12" r="1.5"/></svg></div>
+    <span>Кошелёк</span>
+  </div>
+  <div class="tab" data-tab="profile" onclick="switchTab('profile')">
+    <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>
+    <span>Профиль</span>
+  </div>
+</div>
+
+<!-- ─── Шторка: пополнение ──────────────────────────────── -->
+<div class="overlay" id="depositOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">Пополнить SAMAI</h3>
+    <p class="sheet-sub">1 TON = 100 SAMAI. Отправь TON на кошелёк ниже, SAMAI зачислятся автоматически.</p>
+    <input type="number" class="sheet-input" placeholder="Сумма в TON" id="depositAmount" min="0.1" step="0.1">
+    <div id="depositWalletBlock" style="display: none; background: rgba(255,255,255,0.15); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;">
+      <p style="margin: 0 0 4px; font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500;">Кошелёк для оплаты</p>
+      <p style="margin: 0; font-size: 11px; word-break: break-all; font-family: monospace;" id="depositWalletAddr">—</p>
+    </div>
+    <button class="cta" onclick="submitDeposit()">Получить реквизиты</button>
+    <button class="cta ghost" onclick="closeSheet('depositOverlay')">Отмена</button>
+  </div>
+</div>
+
+<!-- ─── Шторка: вывод ───────────────────────────────────── -->
+<div class="overlay" id="withdrawOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">Вывести SAMAI</h3>
+    <p class="sheet-sub">Минимум 100 SAMAI. Комиссия 15%. Средства зачислятся в TON на указанный адрес.</p>
+    <input type="number" class="sheet-input" placeholder="Сумма в SAMAI" id="withdrawAmount" min="100">
+    <input type="text" class="sheet-input" placeholder="TON-адрес получателя" id="withdrawAddress">
+    <button class="cta" onclick="submitWithdraw()">Вывести</button>
+    <button class="cta ghost" onclick="closeSheet('withdrawOverlay')">Отмена</button>
+  </div>
+</div>
+
+<!-- ─── Шторка: создание коммьюнити ─────────────────────── -->
+<div class="overlay" id="createOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">Создать коммьюнити</h3>
+    <p class="sheet-sub">Стоимость создания — 500 SAMAI. Ты получишь статус CEO и сможешь принимать Founder'ов.</p>
+    <input type="text" class="sheet-input" placeholder="Название коммьюнити" id="createName" maxlength="30">
+    <input type="text" class="sheet-input" placeholder="Описание (до 100 символов)" id="createDescr" maxlength="100">
+    <input type="number" class="sheet-input" placeholder="Цена подписки в SAMAI" id="createPrice" min="50">
+    <button class="cta" onclick="submitCreate()">Создать за 500 SAMAI</button>
+    <button class="cta ghost" onclick="closeSheet('createOverlay')">Отмена</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// TELEGRAM WEB APP INIT
+// ═══════════════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#4a8fdc');
+  tg.setBackgroundColor('#4a8fdc');
+  if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+}
+
+const user = tg?.initDataUnsafe?.user || null;
+const initData = tg?.initData || '';
+
+// ═══════════════════════════════════════════════════════════════
+// API SLOTS — заполнишь URLами когда сделаешь бэкенд
+// ═══════════════════════════════════════════════════════════════
+const API = {
+  base: '', // например 'https://samai.duckdns.org'
+
+  async getBalance() {
+    // GET /api/balance?uid={id}
+    // return: { samai: 1240, ton_equiv: 12.4 }
+    return { samai: 0, ton_equiv: 0 };
+  },
+
+  async getUserProfile() {
+    // GET /api/profile?uid={id}
+    // return: { role: 'ceo'|'founder'|'member', community_id, subs_count, referral_code }
+    return {
+      role: 'member',
+      community_id: null,
+      subs_count: 0,
+      referral_code: user?.id || 'guest',
+    };
+  },
+
+  async getTodayStats() {
+    // GET /api/stats/today
+    // return: { lots_issued, lots_claimed, founders_today, communities, ceos_active, delta_vs_yesterday }
+    return {
+      lots_issued: 0,
+      lots_claimed: 0,
+      founders_today: 0,
+      communities: 0,
+      ceos_active: 0,
+      delta_vs_yesterday: 0,
+    };
+  },
+
+  async getTopCommunities(limit = 3) {
+    // GET /api/communities/top?limit=3
+    // return: [{ id, name, ceo_username, founders_count, price_samai, growth_today, is_ceo }]
+    return [];
+  },
+
+  async getAllCommunities(category = 'all') {
+    // GET /api/communities?category=all
+    return [];
+  },
+
+  async getLots(communityId = null, limit = 20) {
+    // GET /api/lots?community_id=...&limit=20
+    return {
+      list: [],
+      stats: { issued: 0, claimed: 0, avg_price: 0, top_price: 0, top_name: null, active_now: 0 },
+    };
+  },
+
+  async getTransactions(limit = 20) {
+    // GET /api/wallet/tx?limit=20
+    return [];
+  },
+
+  async getMyCEO() {
+    // GET /api/ceo/me
+    // return: { community_id, name, founders_count, total_earned, founders_list: [] }
+    return null;
+  },
+
+  async requestDeposit(amountTon) {
+    // POST /api/wallet/deposit  { amount_ton }
+    // return: { wallet_address, memo, expected_samai }
+    return null;
+  },
+
+  async requestWithdraw(amountSamai, address) {
+    // POST /api/wallet/withdraw  { amount_samai, address }
+    // return: { ok, tx_id, final_ton }
+    return { ok: false, error: 'API not connected' };
+  },
+
+  async createCommunity(name, descr, priceSamai) {
+    // POST /api/ceo/create  { name, descr, price_samai }
+    // return: { ok, community_id }
+    return { ok: false, error: 'API not connected' };
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  balance: { samai: 0, ton_equiv: 0 },
+  profile: null,
+  activeTab: 'home',
+  activeCatalogFilter: 'all',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  return Number(n).toLocaleString('ru-RU');
+}
+
+function haptic(type = 'light') {
+  if (tg?.HapticFeedback?.impactOccurred) {
+    tg.HapticFeedback.impactOccurred(type);
+  }
+}
+
+function switchTab(tab) {
+  if (state.activeTab === tab) return;
+  haptic('light');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const screen = document.getElementById(`screen-${tab}`);
+  const tabEl = document.querySelector(`.tab[data-tab="${tab}"]`);
+  if (screen) screen.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  state.activeTab = tab;
+  document.getElementById('scrollArea').scrollTop = 0;
+  onTabEnter(tab);
+}
+
+function onTabEnter(tab) {
+  if (tab === 'home') refreshHome();
+  else if (tab === 'catalog') refreshCatalog();
+  else if (tab === 'lots') refreshLots();
+  else if (tab === 'wallet') refreshWallet();
+  else if (tab === 'profile') refreshProfile();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHEETS
+// ═══════════════════════════════════════════════════════════════
+function openSheet(id) {
+  haptic('light');
+  document.getElementById(id).classList.add('active');
+}
+function closeSheet(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function openDepositSheet() { openSheet('depositOverlay'); }
+function openWithdrawSheet() { openSheet('withdrawOverlay'); }
+function openCreateCommunity() { openSheet('createOverlay'); }
+
+// ═══════════════════════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════════════════════
+async function refreshHome() {
+  const [balance, stats, top] = await Promise.all([
+    API.getBalance(),
+    API.getTodayStats(),
+    API.getTopCommunities(3),
+  ]);
+
+  state.balance = balance;
+  updateBalanceEverywhere();
+
+  document.getElementById('statLotsToday').textContent = fmt(stats.lots_issued);
+  document.getElementById('statLotsTaken').textContent = fmt(stats.lots_claimed);
+  document.getElementById('statFoundersToday').textContent = fmt(stats.founders_today);
+  document.getElementById('statCommunities').textContent = fmt(stats.communities);
+  document.getElementById('statCEOs').textContent = `${stats.ceos_active} CEO активны`;
+
+  const takenPercent = stats.lots_issued > 0
+    ? Math.round((stats.lots_claimed / stats.lots_issued) * 100)
+    : 0;
+  document.getElementById('statTakenPercent').textContent = `${takenPercent}% успех`;
+
+  if (stats.delta_vs_yesterday !== undefined) {
+    const sign = stats.delta_vs_yesterday >= 0 ? '+' : '';
+    document.getElementById('statLotsDelta').textContent = `${sign}${stats.delta_vs_yesterday}% к вчера`;
+  }
+
+  const container = document.getElementById('topCommunitiesTile');
+  if (top && top.length > 0) {
+    container.innerHTML = top.map(c => `
+      <div class="list-item" onclick="openCommunity('${c.id}')">
+        <div class="avatar">${(c.name || '?')[0].toUpperCase()}</div>
+        <div class="list-info">
+          <p class="list-name">${escapeHtml(c.name)}${c.is_ceo ? ' <span class="badge badge-ceo">CEO</span>' : ''}</p>
+          <p class="list-meta">${fmt(c.founders_count)} founder'ов${c.growth_today ? ` · +${c.growth_today} сегодня` : ''}</p>
+        </div>
+        <div class="list-price">${fmt(c.price_samai)}<small>SAMAI</small></div>
+      </div>
+    `).join('');
+  }
+  // если пусто — оставляем empty state
+}
+
+async function refreshCatalog() {
+  const list = await API.getAllCommunities(state.activeCatalogFilter);
+  document.getElementById('catalogCount').textContent = fmt(list.length);
+
+  const container = document.getElementById('communityList');
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div class="tile">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <p class="empty-state-title">Каталог пуст</p>
+          <p class="empty-state-text">Как только появятся первые коммьюнити — они окажутся здесь.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(c => `
+    <div class="tile" onclick="openCommunity('${c.id}')">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <div class="avatar" style="width:44px; height:44px; border-radius:12px;">${(c.name || '?')[0].toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-size:14px; font-weight:500; display:flex; align-items:center; gap:6px;">${escapeHtml(c.name)}${c.is_ceo ? '<span class="badge badge-ceo">CEO</span>' : ''}</div>
+          <div style="color:var(--text-muted); font-size:11px; font-weight:500;">by @${c.ceo_username || '—'} · ${fmt(c.founders_count)} founder'ов</div>
+        </div>
+        <div class="list-price">${fmt(c.price_samai)}<small>SAMAI</small></div>
+      </div>
+      ${c.descr ? `<p style="color:rgba(255,255,255,0.85); font-size:12px; margin:0; line-height:1.5;">${escapeHtml(c.descr)}</p>` : ''}
+    </div>
+  `).join('');
+}
+
+async function refreshLots() {
+  const data = await API.getLots(null, 20);
+  const { list, stats } = data;
+
+  document.getElementById('lotsIssued').textContent = fmt(stats.issued);
+  document.getElementById('lotsClaimed').textContent = fmt(stats.claimed);
+  document.getElementById('lotsAvgPrice').innerHTML = `${fmt(stats.avg_price)}<small>⭐</small>`;
+  document.getElementById('lotsTopPrice').innerHTML = stats.top_price
+    ? `${fmt(stats.top_price)}<small>⭐</small>`
+    : '—';
+  document.getElementById('lotsTopName').textContent = stats.top_name || '—';
+
+  const claimedPct = stats.issued > 0 ? Math.round((stats.claimed / stats.issued) * 100) : 0;
+  document.getElementById('lotsClaimedPercent').textContent = `${claimedPct}%`;
+
+  if (stats.issued > 0) {
+    const progress = document.getElementById('lotsProgressTile');
+    progress.style.display = 'block';
+    const activeNow = stats.active_now || 0;
+    const closedNow = stats.issued - activeNow;
+    document.getElementById('progressActive').textContent = `${fmt(activeNow)} / ${fmt(stats.issued)}`;
+    document.getElementById('progressClosed').textContent = `${fmt(closedNow)} / ${fmt(stats.issued)}`;
+    document.getElementById('progressActiveBar').style.width = `${(activeNow / stats.issued) * 100}%`;
+    document.getElementById('progressClosedBar').style.width = `${(closedNow / stats.issued) * 100}%`;
+  }
+
+  const container = document.getElementById('lotsList');
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div class="tile">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p class="empty-state-title">Пока нет лотов</p>
+          <p class="empty-state-text">Подпишись на коммьюнити — здесь появится живая лента лотов.</p>
+          <button class="cta" onclick="switchTab('catalog')">В каталог</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(l => `
+    <div class="lot-card">
+      <div class="lot-header">
+        <p class="lot-title">${escapeHtml(l.title)} <small>#${l.number}</small></p>
+        <p class="lot-price">${fmt(l.price_stars)} <small>⭐</small></p>
+      </div>
+      <div class="lot-meta">
+        ${l.hot ? '<span class="tag accent">HOT</span>' : ''}
+        ${l.new ? '<span class="tag accent">NEW</span>' : ''}
+        <span class="tag">ур.${l.seller_level ?? '—'}</span>
+        <span class="tag">${l.seller_gifts ?? '—'} подарк.</span>
+        <span class="tag">${l.time_ago || '—'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function refreshWallet() {
+  const [balance, txs] = await Promise.all([API.getBalance(), API.getTransactions(20)]);
+  state.balance = balance;
+  updateBalanceEverywhere();
+
+  document.getElementById('walletAmount').textContent = fmt(balance.samai);
+  document.getElementById('walletAmountTon').textContent = balance.ton_equiv.toFixed(2);
+
+  const container = document.getElementById('txList');
+  if (!txs || txs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">💸</div>
+        <p class="empty-state-title">История пуста</p>
+        <p class="empty-state-text">Пополни баланс — здесь появятся все транзакции.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = txs.map(tx => `
+    <div class="tx-item">
+      <div class="tx-icon">${tx.icon || '💰'}</div>
+      <div class="tx-info">
+        <p class="tx-title">${escapeHtml(tx.title)}</p>
+        <p class="tx-date">${tx.date}</p>
+      </div>
+      <div class="tx-amount ${tx.amount > 0 ? 'plus' : 'minus'}">${tx.amount > 0 ? '+' : ''}${fmt(tx.amount)} SAMAI</div>
+    </div>
+  `).join('');
+}
+
+async function refreshProfile() {
+  const profile = await API.getUserProfile();
+  state.profile = profile;
+
+  const name = user?.username ? `@${user.username}` : (user?.first_name || 'Гость');
+  const id = user?.id || '—';
+  const initial = (user?.first_name || user?.username || '?')[0].toUpperCase();
+
+  document.getElementById('profileAvatar').textContent = initial;
+  document.getElementById('profileName').textContent = name;
+  document.getElementById('profileId').textContent = id;
+
+  const badge = document.getElementById('profileBadge');
+  const roleEl = document.getElementById('profileRole');
+  const roleSubEl = document.getElementById('profileRoleSub');
+
+  if (profile.role === 'ceo') {
+    badge.style.display = 'inline-block';
+    badge.className = 'badge badge-ceo';
+    badge.textContent = 'CEO';
+    roleEl.textContent = 'CEO';
+    roleSubEl.textContent = 'Владелец коммьюнити';
+    document.getElementById('profileCommunityBlock').style.display = 'block';
+    document.getElementById('profileNoCEOBlock').style.display = 'none';
+    loadCEOData();
+  } else if (profile.role === 'founder') {
+    badge.style.display = 'inline-block';
+    badge.className = 'badge badge-founder';
+    badge.textContent = 'FOUNDER';
+    roleEl.textContent = 'Founder';
+    roleSubEl.textContent = 'Подписчик коммьюнити';
+    document.getElementById('profileCommunityBlock').style.display = 'none';
+    document.getElementById('profileNoCEOBlock').style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+    roleEl.textContent = 'Member';
+    roleSubEl.textContent = 'Базовый доступ';
+    document.getElementById('profileCommunityBlock').style.display = 'none';
+    document.getElementById('profileNoCEOBlock').style.display = 'block';
+  }
+
+  document.getElementById('profileSubsCount').textContent = fmt(profile.subs_count);
+
+  const refCode = profile.referral_code;
+  document.getElementById('referralLink').textContent = `t.me/samai_bot?start=${refCode}`;
+}
+
+async function loadCEOData() {
+  const ceo = await API.getMyCEO();
+  if (!ceo) return;
+
+  document.getElementById('myFoundersCount').textContent = fmt(ceo.founders_count);
+  document.getElementById('myEarnings').innerHTML = `${fmt(ceo.total_earned)}<small style="font-size:12px;opacity:0.7;"> T</small>`;
+  document.getElementById('myFoundersTotal').textContent = fmt(ceo.founders_count);
+
+  const list = ceo.founders_list || [];
+  const container = document.getElementById('myFoundersList');
+  if (list.length === 0) return;
+
+  container.innerHTML = list.slice(0, 20).map((f, idx) => `
+    <div class="founder-row">
+      <div class="founder-num">#${idx + 1}</div>
+      <div class="founder-avatar">${(f.name || '?')[0].toUpperCase()}</div>
+      <div class="founder-name">@${escapeHtml(f.username)}</div>
+      <div class="founder-since">${f.joined || '—'}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════════════════
+async function submitDeposit() {
+  const amount = parseFloat(document.getElementById('depositAmount').value);
+  if (!amount || amount < 0.1) {
+    haptic('rigid');
+    tg?.showAlert?.('Минимум 0.1 TON');
+    return;
+  }
+  haptic('medium');
+  const result = await API.requestDeposit(amount);
+  if (!result) {
+    tg?.showAlert?.('Бэкенд не подключён. Заглушка.');
+    return;
+  }
+  document.getElementById('depositWalletBlock').style.display = 'block';
+  document.getElementById('depositWalletAddr').textContent = result.wallet_address || '—';
+}
+
+async function submitWithdraw() {
+  const amount = parseInt(document.getElementById('withdrawAmount').value);
+  const address = document.getElementById('withdrawAddress').value.trim();
+  if (!amount || amount < 100) {
+    haptic('rigid');
+    tg?.showAlert?.('Минимум 100 SAMAI');
+    return;
+  }
+  if (!address) {
+    haptic('rigid');
+    tg?.showAlert?.('Введи TON-адрес');
+    return;
+  }
+  haptic('medium');
+  const result = await API.requestWithdraw(amount, address);
+  if (result.ok) {
+    tg?.showAlert?.('Заявка на вывод создана. TON поступит в течение 10 минут.');
+    closeSheet('withdrawOverlay');
+    refreshWallet();
+  } else {
+    tg?.showAlert?.(result.error || 'Ошибка вывода');
+  }
+}
+
+async function submitCreate() {
+  const name = document.getElementById('createName').value.trim();
+  const descr = document.getElementById('createDescr').value.trim();
+  const price = parseInt(document.getElementById('createPrice').value);
+
+  if (!name || name.length < 3) {
+    haptic('rigid');
+    tg?.showAlert?.('Название минимум 3 символа');
+    return;
+  }
+  if (!price || price < 50) {
+    haptic('rigid');
+    tg?.showAlert?.('Минимальная цена подписки — 50 SAMAI');
+    return;
+  }
+  if (state.balance.samai < 500) {
+    haptic('rigid');
+    tg?.showAlert?.('Недостаточно SAMAI. Нужно 500 для создания.');
+    return;
+  }
+
+  haptic('medium');
+  const result = await API.createCommunity(name, descr, price);
+  if (result.ok) {
+    tg?.showAlert?.('Коммьюнити создано! Ты теперь CEO.');
+    closeSheet('createOverlay');
+    refreshProfile();
+  } else {
+    tg?.showAlert?.(result.error || 'Ошибка создания');
+  }
+}
+
+function copyReferralLink() {
+  const link = document.getElementById('referralLink').textContent;
+  navigator.clipboard?.writeText(link).then(() => {
+    haptic('medium');
+    tg?.showAlert?.('Скопировано');
+  });
+}
+
+function openCommunity(id) {
+  haptic('light');
+  // TODO: экран коммьюнити с лотами и кнопкой подписки
+  tg?.showAlert?.(`Открытие коммьюнити ${id} — сделаем на следующем этапе`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EMOJI INTERACTIONS
+// ═══════════════════════════════════════════════════════════════
+// Tap на большую иконку в пустом состоянии — bounce + haptic
+function tapIcon(el) {
+  haptic('light');
+  el.style.transition = 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  el.style.transform = 'scale(0.85) rotate(-6deg)';
+  setTimeout(() => {
+    el.style.transform = 'scale(1.12) rotate(4deg)';
+    setTimeout(() => {
+      el.style.transform = '';
+    }, 150);
+  }, 100);
+}
+
+// Tap на inline эмодзи — вылет + возврат
+function tapEmoji(el, symbol) {
+  haptic('light');
+  el.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  el.style.transform = 'scale(1.4) rotate(-15deg)';
+  setTimeout(() => { el.style.transform = ''; }, 200);
+}
+
+// Слушаем все .emoji-tap глобально — на случай если добавляются динамически
+document.addEventListener('click', (e) => {
+  const em = e.target.closest('.emoji-tap');
+  if (em && !em.hasAttribute('onclick')) {
+    tapEmoji(em);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function updateBalanceEverywhere() {
+  const s = fmt(state.balance.samai);
+  const t = (state.balance.ton_equiv || 0).toFixed(2);
+  document.getElementById('topbarBalance').textContent = `${s} SAMAI`;
+  document.getElementById('heroBalance').textContent = s;
+  document.getElementById('heroBalanceTon').textContent = t;
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Фильтры каталога
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.activeCatalogFilter = chip.dataset.cat;
+    refreshCatalog();
+  });
+});
+
+// Клик по оверлею закрывает шторку
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('active');
+  });
+});
+
+// Обновить лоты
+document.getElementById('refreshLots')?.addEventListener('click', () => {
+  haptic('light');
+  refreshLots();
+});
+
+// Первичная загрузка
+refreshHome();
+
+</script>
+</body>
+</html>
